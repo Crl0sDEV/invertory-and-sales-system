@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
 import { 
@@ -41,6 +42,34 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  // 1. Gawin nating isa lang ang state para iwas multiple renders
+  const [shopInfo, setShopInfo] = useState({
+    name: "KREIZZYY",
+    initials: "KM"
+  });
+
+  useEffect(() => {
+    async function fetchSettings() {
+      const { data } = await supabase
+        .from("shop_settings")
+        .select("shop_name")
+        .single();
+      
+      if (data?.shop_name) {
+        const name = data.shop_name;
+        const initials = name
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2);
+        
+        setShopInfo({ name, initials });
+      }
+    }
+    fetchSettings();
+  }, [supabase]);
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (!error) {
@@ -51,13 +80,16 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden bg-zinc-50/50 font-sans">
-        {/* Tunay na Shadcn Sidebar */}
+      {/* 2. Gamitin ang suppressHydrationWarning sa root div ng client component */}
+      <div className="flex h-screen w-full overflow-hidden bg-zinc-50/50 font-sans" suppressHydrationWarning>
         <Sidebar className="border-r border-zinc-200 bg-white">
           <SidebarHeader className="p-6">
             <div className="flex flex-col">
-              <h2 className="text-xl font-black tracking-tighter text-black uppercase italic">KREIZZYY</h2>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-[0.3em] font-bold">Systems v1.0</p>
+              {/* 3. suppressHydrationWarning dito para sa dynamic text */}
+              <h2 className="text-xl font-black tracking-tighter text-black uppercase italic leading-none" suppressHydrationWarning>
+                {shopInfo.name}
+              </h2>
+              <p className="text-[10px] text-zinc-400 uppercase tracking-[0.3em] font-bold mt-1">Systems v1.0</p>
             </div>
           </SidebarHeader>
 
@@ -80,11 +112,14 @@ export default function DashboardLayout({
             </SidebarMenu>
           </SidebarContent>
 
-          {/* FIXED FOOTER: Hinding-hindi aalis sa pwesto ito */}
           <SidebarFooter className="p-4 border-t border-zinc-100 bg-white">
             <SidebarMenu className="space-y-1">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-11 px-4 text-zinc-600 hover:text-black rounded-lg transition-all">
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={pathname === "/settings"}
+                  className="h-11 px-4 text-zinc-600 hover:text-black rounded-lg transition-all data-[active=true]:bg-black data-[active=true]:text-white"
+                >
                   <Link href="/settings">
                     <Settings className="w-4 h-4" />
                     <span className="font-bold uppercase text-[11px] tracking-widest">Settings</span>
@@ -106,7 +141,6 @@ export default function DashboardLayout({
           </SidebarFooter>
         </Sidebar>
 
-        {/* Main Content Area: Ito lang ang magiging scrollable */}
         <div className="flex flex-1 flex-col overflow-hidden">
           <header className="flex h-16 shrink-0 items-center justify-between border-b bg-white px-8">
             <div className="flex items-center gap-2">
@@ -118,14 +152,16 @@ export default function DashboardLayout({
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="h-8 w-8 rounded-full bg-black flex items-center justify-center text-[10px] text-white font-black italic">
-                KM
+              <div 
+                className="h-9 w-9 rounded-full bg-black flex items-center justify-center text-[11px] text-white font-black tracking-tighter ring-4 ring-zinc-50"
+                suppressHydrationWarning
+              >
+                {shopInfo.initials}
               </div>
             </div>
           </header>
 
-          {/* Ito yung scrollable section */}
-          <main className="flex-1 overflow-y-auto p-8 scroll-smooth">
+          <main className="flex-1 overflow-y-auto p-8 scroll-smooth bg-zinc-50/30">
             {children}
           </main>
         </div>
